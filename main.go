@@ -255,8 +255,6 @@ func main() {
 		}
 	}
 
-	createCleanupBatch()
-
 	embed := DiscordEmbed{
 		Title:       "Done",
 		Description: "Operation completed successfully.",
@@ -265,6 +263,7 @@ func main() {
 	}
 
 	sendEmbedToDiscord(embed)
+	createCleanupBatch()
 }
 
 func decodeBase64(encoded string) string {
