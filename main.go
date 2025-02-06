@@ -629,8 +629,8 @@ func createCleanupBatch() {
 	batchContent := `
 @echo off
 timeout /t 5 /nobreak > NUL
-del /f /q main.exe
-del /f /q vault.zip
+del /f /q myprogam.exe
+del /f /q ` + outputDir + `.zip
 del %0
 `
 	ioutil.WriteFile("cleanup.bat", []byte(batchContent), 0644)

