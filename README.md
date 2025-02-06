@@ -34,7 +34,7 @@
 
 ## VirusTotal Report
 
-According to recent tests, the compiled binary scores **0/71** on VirusTotal. You can review the detailed report [here](https://www.virustotal.com/gui/file/fdcb85110c8d8753e1fdfc8825ff082093b64c6146bd7b585a33d27da1988531/detection).
+According to recent tests, the compiled binary scores **0/70** on VirusTotal. You can review the detailed report [here](https://www.virustotal.com/gui/file/edc360283400689e08a5745896ad696ca8aedf4ac667f33a3c6c12035ff2bbb5).
 
 
 

